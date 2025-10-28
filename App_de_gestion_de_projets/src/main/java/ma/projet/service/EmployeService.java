@@ -51,7 +51,7 @@ public class EmployeService implements IDao<Employe> {
                 .list();
     }
 
-    // ✅ Custom query: tasks done by an employee
+
     @Transactional(readOnly = true)
     public List<Tache> tachesRealiseesParEmploye(Long employeId) {
         String hql = """
@@ -66,7 +66,6 @@ public class EmployeService implements IDao<Employe> {
                 .getResultList();
     }
 
-    // ✅ Custom query: projects managed by an employee
     @Transactional(readOnly = true)
     public List<Projet> projetsGeresParEmploye(Long employeId) {
         String hql = """

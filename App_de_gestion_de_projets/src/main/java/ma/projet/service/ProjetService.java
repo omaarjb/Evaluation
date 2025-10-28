@@ -50,9 +50,7 @@ public class ProjetService implements IDao<Projet> {
                 .list();
     }
 
-    /**
-     * 🔹 Returns all planned tasks for a given project.
-     */
+
     @Transactional(readOnly = true)
     public List<Tache> tachesPlanifieesPourProjet(Long projetId) {
         String hql = """
@@ -66,9 +64,7 @@ public class ProjetService implements IDao<Projet> {
                 .getResultList();
     }
 
-    /**
-     * 🔹 Returns all completed tasks with their actual start and end dates.
-     */
+
     @Transactional(readOnly = true)
     public List<Object[]> tachesRealiseesAvecDates(Long projetId) {
         String hql = """
