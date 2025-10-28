@@ -2,95 +2,53 @@ package ma.projet.service;
 
 import ma.projet.classes.Commande;
 import ma.projet.dao.IDao;
-import ma.projet.util.HibernateUtil;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
-import org.springframework.stereotype.Service;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Service
+@Repository
 public class CommandeService implements IDao<Commande> {
 
+    @Autowired
+    private SessionFactory sessionFactory;
+
     @Override
+    @Transactional
     public Commande add(Commande o) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.persist(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().save(o);
+        return o;
     }
 
     @Override
+    @Transactional
     public Commande update(Commande o) {
-        Session s = null; Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.merge(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().update(o);
+        return o;
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
-        Session s = null; Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            Commande c = s.get(Commande.class, id);
-            if (c != null) s.remove(c);
-            tx.commit();
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        } finally {
-            if (s != null) s.close();
+        Commande c = getById(id);
+        if (c != null) {
+            sessionFactory.getCurrentSession().delete(c);
         }
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Commande getById(Long id) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.get(Commande.class, id);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession().get(Commande.class, id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Commande> getAll() {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery("FROM Commande", Commande.class).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Commande", Commande.class)
+                .list();
     }
 }

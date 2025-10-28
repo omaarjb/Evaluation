@@ -1,7 +1,6 @@
 package ma.projet.test;
 
 import ma.projet.classes.*;
-import ma.projet.config.HibernateConfig;
 import ma.projet.service.*;
 import ma.projet.util.HibernateUtil;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -14,8 +13,9 @@ import java.util.Locale;
 
 public class TestAffichageProjet {
     public static void main(String[] args) {
+
         AnnotationConfigApplicationContext context =
-                new AnnotationConfigApplicationContext(HibernateConfig.class);
+                new AnnotationConfigApplicationContext(HibernateUtil.class);
 
         EmployeService empSrv = context.getBean(EmployeService.class);
         ProjetService prjSrv = context.getBean(ProjetService.class);
@@ -23,13 +23,18 @@ public class TestAffichageProjet {
         EmployeTacheService etSrv = context.getBean(EmployeTacheService.class);
 
         try {
+
             Employe chef = empSrv.add(new Employe("test", "test", "0600000000", "test@test.com", "test"));
 
             Projet p = prjSrv.add(new Projet("projet1", LocalDate.of(2013, 1, 14), chef));
 
-            Tache t1 = tchSrv.add(new Tache("Analyse", LocalDate.of(2013, 2, 5), LocalDate.of(2013, 2, 28), 1500.0, p));
-            Tache t2 = tchSrv.add(new Tache("Conception", LocalDate.of(2013, 3, 1), LocalDate.of(2013, 3, 30), 2000.0, p));
-            Tache t3 = tchSrv.add(new Tache("Développement", LocalDate.of(2013, 4, 1), LocalDate.of(2013, 5, 5), 5000.0, p));
+            Tache t1 = tchSrv.add(new Tache("Analyse", LocalDate.of(2013, 2, 5),
+                    LocalDate.of(2013, 2, 28), 1500.0, p));
+            Tache t2 = tchSrv.add(new Tache("Conception", LocalDate.of(2013, 3, 1),
+                    LocalDate.of(2013, 3, 30), 2000.0, p));
+            Tache t3 = tchSrv.add(new Tache("Développement", LocalDate.of(2013, 4, 1),
+                    LocalDate.of(2013, 5, 5), 5000.0, p));
+
 
             etSrv.add(new EmployeTache(chef, t1, LocalDate.of(2013, 2, 10), LocalDate.of(2013, 2, 20)));
             etSrv.add(new EmployeTache(chef, t2, LocalDate.of(2013, 3, 10), LocalDate.of(2013, 3, 15)));
@@ -51,9 +56,9 @@ public class TestAffichageProjet {
                 String dfr = formatDateFr((LocalDate) r[3]);
                 System.out.printf("%-5d %-14s %-18s %s%n", idTache, nom, ddr, dfr);
             }
+
         } finally {
             context.close();
-            HibernateUtil.shutdown();
         }
     }
 

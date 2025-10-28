@@ -3,118 +3,70 @@ package ma.projet.service;
 import ma.projet.beans.Femme;
 import ma.projet.beans.Homme;
 import ma.projet.dao.IDao;
-import ma.projet.util.HibernateUtil;
 import org.hibernate.Session;
-import org.hibernate.Transaction;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@Transactional
 public class HommeService implements IDao<Homme> {
+
+    @Autowired
+    private SessionFactory sessionFactory;
+
     @Override
     public Homme add(Homme o) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.persist(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().save(o);
+        return o;
     }
 
     @Override
     public Homme update(Homme o) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.merge(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().update(o);
+        return o;
     }
 
     @Override
     public void delete(Long id) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            Homme h = s.get(Homme.class, id);
-            if (h != null) s.remove(h);
-            tx.commit();
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        } finally {
-            if (s != null) s.close();
-        }
+        Session session = sessionFactory.getCurrentSession();
+        Homme h = session.get(Homme.class, id);
+        if (h != null) session.delete(h);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Homme getById(Long id) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.get(Homme.class, id);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession().get(Homme.class, id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Homme> getAll() {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery("FROM Homme", Homme.class).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Homme", Homme.class)
+                .list();
     }
 
+    // === Custom Query ===
 
+    @Transactional(readOnly = true)
     public List<Femme> epousesEntreDates(Long hommeId, LocalDate d1, LocalDate d2) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery(
-                            "SELECT m.femme FROM Mariage m " +
-                                    "WHERE m.homme.id = :hid AND m.dateDebut BETWEEN :d1 AND :d2 " +
-                                    "ORDER BY m.dateDebut", Femme.class)
-                    .setParameter("hid", hommeId)
-                    .setParameter("d1", d1)
-                    .setParameter("d2", d2)
-                    .getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        String hql = """
+                SELECT m.femme FROM Mariage m
+                WHERE m.homme.id = :hid
+                AND m.dateDebut BETWEEN :d1 AND :d2
+                ORDER BY m.dateDebut
+                """;
+        return sessionFactory.getCurrentSession()
+                .createQuery(hql, Femme.class)
+                .setParameter("hid", hommeId)
+                .setParameter("d1", d1)
+                .setParameter("d2", d2)
+                .getResultList();
     }
 }

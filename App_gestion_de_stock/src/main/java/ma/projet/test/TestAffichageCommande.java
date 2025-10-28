@@ -1,7 +1,6 @@
 package ma.projet.test;
 
 import ma.projet.classes.*;
-import ma.projet.config.HibernateConfig;
 import ma.projet.service.*;
 import ma.projet.util.HibernateUtil;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -14,7 +13,7 @@ public class TestAffichageCommande {
 
     public static void main(String[] args) {
 
-        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(HibernateConfig.class);
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(HibernateUtil.class);
 
         CategorieService catSrv = context.getBean(CategorieService.class);
         ProduitService prodSrv = context.getBean(ProduitService.class);
@@ -51,7 +50,6 @@ public class TestAffichageCommande {
             }
         } finally {
             context.close();
-            HibernateUtil.shutdown();
         }
     }
 

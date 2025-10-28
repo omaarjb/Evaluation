@@ -1,44 +1,77 @@
 package ma.projet.util;
 
-import org.hibernate.SessionFactory;
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.Configuration;
-import org.hibernate.service.ServiceRegistry;
-
-import java.io.InputStream;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.orm.hibernate5.HibernateTransactionManager;
+import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import javax.sql.DataSource;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import java.util.Properties;
 
+@Configuration
+@ComponentScan(basePackages = {"ma.projet"})
+@EnableTransactionManagement(proxyTargetClass = true)
+@PropertySource("classpath:application.properties")
 public class HibernateUtil {
-    private static final SessionFactory sessionFactory = buildSessionFactory();
 
-    private static SessionFactory buildSessionFactory() {
-        try {
-            Properties props = new Properties();
-            try (InputStream in = HibernateUtil.class.getClassLoader()
-                    .getResourceAsStream("application.properties")) {
-                if (in == null) throw new RuntimeException("application.properties introuvable");
-                props.load(in);
-            }
+    @Value("${spring.datasource.driver-class-name}")
+    private String driverClassName;
 
-            Configuration cfg = new Configuration().setProperties(props);
-            cfg.addAnnotatedClass(ma.projet.beans.Homme.class);
-            cfg.addAnnotatedClass(ma.projet.beans.Femme.class);
-            cfg.addAnnotatedClass(ma.projet.beans.Mariage.class);
-            cfg.addAnnotatedClass(ma.projet.beans.Personne.class);
+    @Value("${spring.datasource.url}")
+    private String url;
 
-            ServiceRegistry reg = new StandardServiceRegistryBuilder()
-                    .applySettings(cfg.getProperties()).build();
-            return cfg.buildSessionFactory(reg);
-        } catch (Exception e) {
-            throw new ExceptionInInitializerError(e);
-        }
+    @Value("${spring.datasource.username}")
+    private String username;
+
+    @Value("${spring.datasource.password}")
+    private String password;
+
+    @Value("${spring.jpa.properties.hibernate.dialect}")
+    private String hibernateDialect;
+
+    @Value("${spring.jpa.hibernate.ddl-auto}")
+    private String hibernateDdlAuto;
+
+    @Value("${spring.jpa.show-sql}")
+    private String showSql;
+
+    @Value("${spring.jpa.properties.hibernate.format_sql}")
+    private String formatSql;
+
+    @Bean
+    public DataSource dataSource() {
+        DriverManagerDataSource dataSource = new DriverManagerDataSource();
+        dataSource.setDriverClassName(driverClassName);
+        dataSource.setUrl(url);
+        dataSource.setUsername(username);
+        dataSource.setPassword(password);
+        return dataSource;
     }
 
-    public static SessionFactory getSessionFactory() {
+    @Bean
+    public LocalSessionFactoryBean sessionFactory() {
+        LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
+        sessionFactory.setDataSource(dataSource());
+        sessionFactory.setPackagesToScan("ma.projet.dao", "ma.projet.beans", "ma.projet.service");
+
+        Properties hibernateProperties = new Properties();
+        hibernateProperties.put("hibernate.dialect", hibernateDialect);
+        hibernateProperties.put("hibernate.hbm2ddl.auto", hibernateDdlAuto);
+        hibernateProperties.put("hibernate.show_sql", showSql);
+        hibernateProperties.put("hibernate.format_sql", formatSql);
+
+        sessionFactory.setHibernateProperties(hibernateProperties);
         return sessionFactory;
     }
 
-    public static void shutdown() {
-        sessionFactory.close();
+    @Bean
+    public HibernateTransactionManager transactionManager() {
+        HibernateTransactionManager txManager = new HibernateTransactionManager();
+        txManager.setSessionFactory(sessionFactory().getObject());
+        return txManager;
     }
 }

@@ -3,129 +3,84 @@ package ma.projet.service;
 import ma.projet.classes.Projet;
 import ma.projet.classes.Tache;
 import ma.projet.dao.IDao;
-import ma.projet.util.HibernateUtil;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class ProjetService implements IDao<Projet> {
+
+    @Autowired
+    private SessionFactory sessionFactory;
 
     @Override
     public Projet add(Projet o) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.persist(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().save(o);
+        return o;
     }
 
     @Override
     public Projet update(Projet o) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.merge(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().update(o);
+        return o;
     }
 
     @Override
     public void delete(Long id) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            Projet p = s.get(Projet.class, id);
-            if (p != null) s.remove(p);
-            tx.commit();
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        } finally {
-            if (s != null) s.close();
-        }
+        var session = sessionFactory.getCurrentSession();
+        Projet p = session.get(Projet.class, id);
+        if (p != null) session.delete(p);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Projet getById(Long id) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.get(Projet.class, id);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession().get(Projet.class, id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Projet> getAll() {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery("FROM Projet", Projet.class).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Projet", Projet.class)
+                .list();
     }
 
+    /**
+     * 🔹 Returns all planned tasks for a given project.
+     */
+    @Transactional(readOnly = true)
     public List<Tache> tachesPlanifieesPourProjet(Long projetId) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery(
-                    "FROM Tache t WHERE t.projet.id = :pid ORDER BY t.dateDebutPlanifiee",
-                    Tache.class).setParameter("pid", projetId).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        String hql = """
+            from Tache t 
+            where t.projet.id = :pid 
+            order by t.dateDebutPlanifiee
+            """;
+        return sessionFactory.getCurrentSession()
+                .createQuery(hql, Tache.class)
+                .setParameter("pid", projetId)
+                .getResultList();
     }
 
+    /**
+     * 🔹 Returns all completed tasks with their actual start and end dates.
+     */
+    @Transactional(readOnly = true)
     public List<Object[]> tachesRealiseesAvecDates(Long projetId) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery(
-                    "SELECT t.id, t.nom, et.dateDebutReelle, et.dateFinReelle " +
-                            "FROM EmployeTache et JOIN et.tache t " +
-                            "WHERE t.projet.id = :pid ORDER BY t.id",
-                    Object[].class).setParameter("pid", projetId).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        String hql = """
+            select t.id, t.nom, et.dateDebutReelle, et.dateFinReelle
+            from EmployeTache et 
+            join et.tache t 
+            where t.projet.id = :pid 
+            order by t.id
+            """;
+        return sessionFactory.getCurrentSession()
+                .createQuery(hql, Object[].class)
+                .setParameter("pid", projetId)
+                .getResultList();
     }
 }

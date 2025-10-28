@@ -2,94 +2,53 @@ package ma.projet.service;
 
 import ma.projet.classes.LigneCommandeProduit;
 import ma.projet.dao.IDao;
-import ma.projet.util.HibernateUtil;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
-import org.springframework.stereotype.Service;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Service
+@Repository
 public class LigneCommandeService implements IDao<LigneCommandeProduit> {
 
+    @Autowired
+    private SessionFactory sessionFactory;
+
     @Override
+    @Transactional
     public LigneCommandeProduit add(LigneCommandeProduit o) {
-        Session s = null; Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.persist(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().save(o);
+        return o;
     }
 
     @Override
+    @Transactional
     public LigneCommandeProduit update(LigneCommandeProduit o) {
-        Session s = null; Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.merge(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().update(o);
+        return o;
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
-        Session s = null; Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            LigneCommandeProduit l = s.get(LigneCommandeProduit.class, id);
-            if (l != null) s.remove(l);
-            tx.commit();
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        } finally {
-            if (s != null) s.close();
+        LigneCommandeProduit l = getById(id);
+        if (l != null) {
+            sessionFactory.getCurrentSession().delete(l);
         }
     }
 
     @Override
+    @Transactional(readOnly = true)
     public LigneCommandeProduit getById(Long id) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.get(LigneCommandeProduit.class, id);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession().get(LigneCommandeProduit.class, id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<LigneCommandeProduit> getAll() {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery("FROM LigneCommandeProduit", LigneCommandeProduit.class).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession()
+                .createQuery("from LigneCommandeProduit", LigneCommandeProduit.class)
+                .list();
     }
 }

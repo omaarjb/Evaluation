@@ -4,128 +4,79 @@ import ma.projet.classes.Employe;
 import ma.projet.classes.Projet;
 import ma.projet.classes.Tache;
 import ma.projet.dao.IDao;
-import ma.projet.util.HibernateUtil;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class EmployeService implements IDao<Employe> {
+
+    @Autowired
+    private SessionFactory sessionFactory;
 
     @Override
     public Employe add(Employe o) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.persist(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null)
-                tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().save(o);
+        return o;
     }
 
     @Override
     public Employe update(Employe o) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            s.merge(o);
-            tx.commit();
-            return o;
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        sessionFactory.getCurrentSession().update(o);
+        return o;
     }
 
     @Override
     public void delete(Long id) {
-        Session s = null;
-        Transaction tx = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            tx = s.beginTransaction();
-            Employe e = s.get(Employe.class, id);
-            if (e != null) s.remove(e);
-            tx.commit();
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        } finally {
-            if (s != null) s.close();
-        }
+        var session = sessionFactory.getCurrentSession();
+        Employe e = session.get(Employe.class, id);
+        if (e != null) session.delete(e);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Employe getById(Long id) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.get(Employe.class, id);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession().get(Employe.class, id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Employe> getAll() {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery("FROM Employe", Employe.class).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Employe", Employe.class)
+                .list();
     }
 
+    // ✅ Custom query: tasks done by an employee
+    @Transactional(readOnly = true)
     public List<Tache> tachesRealiseesParEmploye(Long employeId) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery(
-                    "SELECT et.tache FROM EmployeTache et WHERE et.employe.id = :eid ORDER BY et.tache.id",
-                    Tache.class).setParameter("eid", employeId).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        String hql = """
+            SELECT et.tache 
+            FROM EmployeTache et 
+            WHERE et.employe.id = :eid 
+            ORDER BY et.tache.id
+            """;
+        return sessionFactory.getCurrentSession()
+                .createQuery(hql, Tache.class)
+                .setParameter("eid", employeId)
+                .getResultList();
     }
 
+    // ✅ Custom query: projects managed by an employee
+    @Transactional(readOnly = true)
     public List<Projet> projetsGeresParEmploye(Long employeId) {
-        Session s = null;
-        try {
-            s = HibernateUtil.getSessionFactory().openSession();
-            return s.createQuery(
-                    "FROM Projet p WHERE p.chefDeProjet.id = :eid ORDER BY p.id",
-                    Projet.class).setParameter("eid", employeId).getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        } finally {
-            if (s != null) s.close();
-        }
+        String hql = """
+            FROM Projet p 
+            WHERE p.chefDeProjet.id = :eid 
+            ORDER BY p.id
+            """;
+        return sessionFactory.getCurrentSession()
+                .createQuery(hql, Projet.class)
+                .setParameter("eid", employeId)
+                .getResultList();
     }
 }
